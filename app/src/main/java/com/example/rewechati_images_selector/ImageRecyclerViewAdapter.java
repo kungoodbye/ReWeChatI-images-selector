@@ -1,5 +1,6 @@
 package com.example.rewechati_images_selector;
 
+import android.content.Context;
 import android.net.Uri;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -8,6 +9,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
 import com.example.rewechati_images_selector.model.ImageItem;
 import com.example.rewechati_images_selector.model.ImageListContent;
 import com.example.rewechati_images_selector.utilities.DraweeUtils;
@@ -28,6 +30,7 @@ public class ImageRecyclerViewAdapter extends RecyclerView.Adapter<ImageRecycler
     private final OnImageRecyclerViewInteractionListener mListener;
     private static final String TAG = "ImageAdapter";
 
+        private Context mContext;
 
     public ImageRecyclerViewAdapter(List<ImageItem> items, OnImageRecyclerViewInteractionListener listener) {
         mValues = items;
@@ -37,6 +40,7 @@ public class ImageRecyclerViewAdapter extends RecyclerView.Adapter<ImageRecycler
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.recyclerview_image_item, parent, false);
+        mContext=parent.getContext();
         return new ViewHolder(view);
     }
 
@@ -45,15 +49,20 @@ public class ImageRecyclerViewAdapter extends RecyclerView.Adapter<ImageRecycler
         final ImageItem imageItem = mValues.get(position);
         holder.mItem = imageItem;
         Uri newURI;
+        //无相机
         if (!imageItem.isCamera()) {
             // draw image first
+
             File imageFile = new File(imageItem.path);
             if (imageFile.exists()) {
                 newURI = Uri.fromFile(imageFile);
             } else {
                 newURI = FileUtils.getUriByResId(R.mipmap.default_image);
             }
-            DraweeUtils.showThumb(newURI, holder.mDrawee);
+           //用Glide
+            Glide.with(mContext).load(newURI).asBitmap().into(holder.mDrawee);
+            //用Fresco展示略缩图
+//            DraweeUtils.showThumb(newURI, holder.mDrawee);
 
             holder.mImageName.setVisibility(View.GONE);
             holder.mChecked.setVisibility(View.VISIBLE);
@@ -67,21 +76,24 @@ public class ImageRecyclerViewAdapter extends RecyclerView.Adapter<ImageRecycler
         } else {
             // camera icon, not normal image
             newURI = FileUtils.getUriByResId(R.mipmap.ic_photo_camera_white_48dp);
-            DraweeUtils.showThumb(newURI, holder.mDrawee);
+            //用Glide加载图片，gif显示第一帧
+            Glide.with(mContext).load(newURI).asBitmap().into(holder.mDrawee);
+            //用Fresco
+//            DraweeUtils.showThumb(newURI, holder.mDrawee);
 
             holder.mImageName.setVisibility(View.VISIBLE);
             holder.mChecked.setVisibility(View.GONE);
             holder.mMask.setVisibility(View.GONE);
         }
 
-
-        holder.mView.setOnClickListener(new View.OnClickListener() {
+        //点击选框
+        holder.mChecked.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 // Log.d(TAG, "onClick: " + holder.mItem.toString());
                 if(!holder.mItem.isCamera()) {
                     if(!ImageListContent.isImageSelected(imageItem.path)) {
-                        // just select one new image, make sure total number is ok
+                        // 只选一张新图片, 确认总图片数量
                         if(ImageListContent.SELECTED_IMAGES.size() < SelectorSettings.mMaxImageNumber) {
                             ImageListContent.toggleImageSelected(imageItem.path);
                             notifyItemChanged(position);
@@ -90,7 +102,7 @@ public class ImageRecyclerViewAdapter extends RecyclerView.Adapter<ImageRecycler
                             ImageListContent.bReachMaxNumber = true;
                         }
                     } else {
-                        // deselect
+                        // 反选
                         ImageListContent.toggleImageSelected(imageItem.path);
                         notifyItemChanged(position);
                     }
