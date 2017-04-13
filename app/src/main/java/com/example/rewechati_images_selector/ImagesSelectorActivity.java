@@ -17,6 +17,7 @@ import android.os.Bundle;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
@@ -43,7 +44,9 @@ import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 import xyz.danoz.recyclerviewfastscroller.vertical.VerticalRecyclerViewFastScroller;
 
-public class ImagesSelectorActivity extends AppCompatActivity implements  View.OnClickListener,OnImageRecyclerViewInteractionListener{
+public class ImagesSelectorActivity extends AppCompatActivity implements
+        View.OnClickListener,OnImageRecyclerViewInteractionListener
+,OnFolderRecyclerViewInteractionListener{
     private static final String TAG = "ImageSelector";
     private ImageView mbtnBack;
     private Button mbtnConfirm;
@@ -130,7 +133,7 @@ public class ImagesSelectorActivity extends AppCompatActivity implements  View.O
         FolderListContent.clear();
         ImageListContent.clear();
 
-//        updateDoneButton();
+        updateDoneButton();
 
         requestReadStorageRuntimePermission();
     }
@@ -241,6 +244,20 @@ public class ImagesSelectorActivity extends AppCompatActivity implements  View.O
                     }
                 });
     }
+
+
+
+    public void updateDoneButton() {
+        if(ImageListContent.SELECTED_IMAGES.size() == 0) {
+            mbtnConfirm.setEnabled(false);
+        } else {
+            mbtnConfirm.setEnabled(true);
+        }
+
+        String caption = getResources().getString(R.string.selector_action_done, ImageListContent.SELECTED_IMAGES.size(), SelectorSettings.mMaxImageNumber);
+        mbtnConfirm.setText(caption);
+    }
+
     @Override
     public void onClick(View v) {
         if( v == mbtnBack) {
@@ -268,6 +285,28 @@ public class ImagesSelectorActivity extends AppCompatActivity implements  View.O
 //            requestCameraRuntimePermissions();
 //        }
 
-//        updateDoneButton();
+        updateDoneButton();
+    }
+
+    @Override
+    public void onFolderItemInteraction(FolderItem item) {
+        //取消popup,与更新图片列表，如需要
+        OnFolderChange();
+    }
+
+    public void OnFolderChange() {
+        mFolderPopupWindow.dismiss();
+
+        FolderItem folder = FolderListContent.getSelectedFolder();
+        if( !TextUtils.equals(folder.path, this.currentFolderPath) ) {
+            this.currentFolderPath = folder.path;
+            mFolderSelectButton.setText(folder.name);
+
+            ImageListContent.IMAGES.clear();
+            ImageListContent.IMAGES.addAll(folder.mImages);
+            recyclerView.getAdapter().notifyDataSetChanged();
+        } else {
+            Log.d(TAG, "OnFolderChange: " + "Same folder selected, skip loading.");
+        }
     }
 }
